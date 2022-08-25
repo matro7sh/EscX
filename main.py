@@ -36,7 +36,7 @@ def check_esc4(template):
         
         return False
     
-
+    assert(template['Enabled'] == True)
     assert(check_objet_control_permissions_write_owners(template))
     assert(check_object_control_permissions_write_dacl(template))
 
