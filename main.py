@@ -1,14 +1,23 @@
 import argparse
 import json
 
+from pyparsing import Or
 
-def check_esc1(template):
+
+def check_esc1(template, ):
 
     def has_domain_users_in_enrollment_rights(template):
         for enrollment_right in template['Permissions']['Enrollment Permissions']['Enrollment Rights']:
-            if enrollment_right.split('\\')[1] == 'Domain Users':
+            myuser = enrollment_right.split('\\')[1]
+          #  print("mon USER", args.user, "MYUSER", myuser)
+            if args.user in myuser:
+                print("The template", template['Template Name'] , " is vulnerable to ESC1, through " , myuser, "user")
                 return True
-    
+            
+            if enrollment_right.split('\\')[1] == 'Domain Users':
+                    print("your user has not been found, but all users in the domain can exploit this vulnerability")
+                    print("The template ", template['Template Name'] , " is vulnerable to ESC1 through the Domain Users group'")
+                    return True
         return False
 
     assert(template['Enabled'] == True)
@@ -24,6 +33,7 @@ def check_esc4(template):
     def check_objet_control_permissions_write_owners(template):
         for write_owner in template['Permissions']['Object Control Permissions']['Write Owner Principals']:
             if write_owner.split('\\')[1] == 'Authenticated Users':
+                print("The template", template['Template Name'] , " is vulnerable to ESC4, you can use it to update the template and then use ESC1")
                 return True
         
         return False
@@ -47,10 +57,12 @@ CHECKS = {
 }
 
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='')
 
     parser.add_argument('input_file', type=str, help='A JSON file containing the Certipy output')
+    parser.add_argument('user', type=str, help='A User containing the Certipy output')
     parser.add_argument('checks', choices=CHECKS.keys(), nargs='+', help='The checks to run against the templates')
 
     return parser.parse_args()
@@ -80,4 +92,4 @@ if __name__ == '__main__':
             except AssertionError:
                 vulnerabilities[name][check_name] = False
     
-    print(json.dumps(vulnerabilities, indent=4))
+    #print(json.dumps(vulnerabilities, indent=4))
