@@ -13,4 +13,4 @@ Dump Certificate from certipy using the following command
 # Usage
 
 
-`python main.py <jsonFile> esc1 esc4`
+`python main.py <jsonFile> esc1 esc4 | grep -B 3  true`
