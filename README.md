@@ -13,4 +13,4 @@ Dump Certificate from certipy using the following command
 # Usage
 
 
-`python main.py <jsonFile> esc1 esc4 -u <user> --vulnerable`
+`python escx.py <jsonFile> esc1 esc4 -u <user> --vulnerable`
