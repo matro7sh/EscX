@@ -11,14 +11,6 @@ def check_esc1(template, user = None):
             if (user == right_user) or (right_user == 'Domain Users'):
                 return True
 
-            # if args.user in myuser:
-                #print("The template", template['Template Name'] , " is vulnerable to ESC1, through " , myuser, "user")
-                # return True
-            
-            # if  == 'Domain Users':
-                    #print("your user has not been found, but all users in the domain can exploit this vulnerability")
-                    #print("The template ", template['Template Name'] , " is vulnerable to ESC1 through the Domain Users group'")
-                    # return True
         return False
 
     assert(template['Enabled'] == True)
@@ -34,7 +26,6 @@ def check_esc4(template, user = None):
     def check_objet_control_permissions_write_owners(template):
         for write_owner in template['Permissions']['Object Control Permissions']['Write Owner Principals']:
             if write_owner.split('\\')[1] == 'Authenticated Users':
-                #print("The template", template['Template Name'] , " is vulnerable to ESC4, you can use it to update the template and then use ESC1")
                 return True
         
         return False
@@ -64,6 +55,8 @@ def parse_args():
     parser.add_argument('input_file', type=str, help='A JSON file containing the Certipy output')
     parser.add_argument('checks', choices=CHECKS.keys(), nargs='+', help='The checks to run against the templates')
     parser.add_argument('-u', '--user', dest='user', type=str, help='A user you have access to on the domain. Do not specify the domain name, only the user name')
+    parser.add_argument('-j', '--json', dest='use_json_output', action='store_true', help='Produce a JSON output')
+    parser.add_argument('--vulnerable', dest='vulnerable_only', action='store_true', help='Add only vulnerables templates to the output')
 
     return parser.parse_args()
 
@@ -74,13 +67,14 @@ if __name__ == '__main__':
     with open(args.input_file, 'r') as input_file:
         data = json.loads(input_file.read())
     
-    vulnerabilities = {}
+    templates = {}
 
     for certificate_template in data['Certificate Templates'].values():
         name = certificate_template['Template Name']
         display_name = certificate_template['Display Name']
-        vulnerabilities[name] = {
-            'display_name': display_name
+        templates[name] = {
+            'display_name': display_name,
+            'vulnerabilities': {}
         }
 
         for check_name in args.checks:
@@ -88,8 +82,21 @@ if __name__ == '__main__':
 
             try:
                 check_function(certificate_template, args.user)
-                vulnerabilities[name][check_name] = True
+                templates[name]['vulnerabilities'][check_name] = True
             except AssertionError:
-                vulnerabilities[name][check_name] = False
+                if not args.vulnerable_only:
+                    templates[name]['vulnerabilities'][check_name] = False
     
-    #print(json.dumps(vulnerabilities, indent=4))
+    if args.use_json_output:
+        print(json.dumps(templates, indent=4))
+    else:
+        for template_name, template in templates.items():
+            display_name = template['display_name']
+
+            for check_name, check_result in template['vulnerabilities'].items():
+                verb = 'is'
+
+                if check_result == False:
+                    verb = 'is not'
+                
+                print(f'Template {display_name} [{template_name}] {verb} vulnerable to {check_name}')
