@@ -1,23 +1,24 @@
 import argparse
 import json
 
-from pyparsing import Or
 
-
-def check_esc1(template, ):
+def check_esc1(template, user = None):
 
     def has_domain_users_in_enrollment_rights(template):
         for enrollment_right in template['Permissions']['Enrollment Permissions']['Enrollment Rights']:
-            myuser = enrollment_right.split('\\')[1]
-          #  print("mon USER", args.user, "MYUSER", myuser)
-            if args.user in myuser:
-                print("The template", template['Template Name'] , " is vulnerable to ESC1, through " , myuser, "user")
+            right_user = enrollment_right.split('\\')[1]
+
+            if (user == right_user) or (right_user == 'Domain Users'):
                 return True
+
+            # if args.user in myuser:
+                #print("The template", template['Template Name'] , " is vulnerable to ESC1, through " , myuser, "user")
+                # return True
             
-            if enrollment_right.split('\\')[1] == 'Domain Users':
-                    print("your user has not been found, but all users in the domain can exploit this vulnerability")
-                    print("The template ", template['Template Name'] , " is vulnerable to ESC1 through the Domain Users group'")
-                    return True
+            # if  == 'Domain Users':
+                    #print("your user has not been found, but all users in the domain can exploit this vulnerability")
+                    #print("The template ", template['Template Name'] , " is vulnerable to ESC1 through the Domain Users group'")
+                    # return True
         return False
 
     assert(template['Enabled'] == True)
@@ -28,12 +29,12 @@ def check_esc1(template, ):
     assert(has_domain_users_in_enrollment_rights(template))
 
 
-def check_esc4(template):
+def check_esc4(template, user = None):
 
     def check_objet_control_permissions_write_owners(template):
         for write_owner in template['Permissions']['Object Control Permissions']['Write Owner Principals']:
             if write_owner.split('\\')[1] == 'Authenticated Users':
-                print("The template", template['Template Name'] , " is vulnerable to ESC4, you can use it to update the template and then use ESC1")
+                #print("The template", template['Template Name'] , " is vulnerable to ESC4, you can use it to update the template and then use ESC1")
                 return True
         
         return False
@@ -57,13 +58,12 @@ CHECKS = {
 }
 
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description='')
 
     parser.add_argument('input_file', type=str, help='A JSON file containing the Certipy output')
-    parser.add_argument('user', type=str, help='A User containing the Certipy output')
     parser.add_argument('checks', choices=CHECKS.keys(), nargs='+', help='The checks to run against the templates')
+    parser.add_argument('-u', '--user', dest='user', type=str, help='A user you have access to on the domain. Do not specify the domain name, only the user name')
 
     return parser.parse_args()
 
@@ -87,7 +87,7 @@ if __name__ == '__main__':
             check_function = CHECKS[check_name]
 
             try:
-                check_function(certificate_template)
+                check_function(certificate_template, args.user)
                 vulnerabilities[name][check_name] = True
             except AssertionError:
                 vulnerabilities[name][check_name] = False
